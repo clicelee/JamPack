@@ -30,6 +30,10 @@
     <key>NSDownloadsFolderUsageDescription</key>
     <string>JamPack needs access to your Downloads folder to save merged files.</string>
     <key>NSHighResolutionCapable</key>
+    <key>CFBundleDisplayName</key>
+    <string>JamPack</string>
+    <key>CFBundleName</key>
+    <string>JamPack</string>
     <true/>
 </dict>
 </plist>
