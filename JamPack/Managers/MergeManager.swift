@@ -18,14 +18,21 @@ struct MergeManager {
 
         for fileURL in files {
             if let content = try? String(contentsOf: fileURL) {
-                mergedContent += "// \(fileURL.lastPathComponent)\n"
+                mergedContent += "```\(fileURL.lastPathComponent)\n"
                 mergedContent += content
-                mergedContent += "\n\n"
+                mergedContent += "\n```\n\n"
             }
         }
 
         let downloadsDirectory = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first!
-        let outputURL = downloadsDirectory.appendingPathComponent("JamPack-merged.txt")
+
+        let combinedFileName = files
+            .map { $0.lastPathComponent }
+            .joined(separator: "-")
+            .replacingOccurrences(of: " ", with: "")
+
+        let outputFileName = "\(combinedFileName).txt"
+        let outputURL = downloadsDirectory.appendingPathComponent(outputFileName)
 
         do {
             try mergedContent.write(to: outputURL, atomically: true, encoding: .utf8)
