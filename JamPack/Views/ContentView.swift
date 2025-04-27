@@ -106,7 +106,12 @@ struct ContentView: View {
                     DispatchQueue.main.async {
                         if let data = item as? Data,
                            let url = URL(dataRepresentation: data, relativeTo: nil) {
-                            droppedFiles.append(url)
+                            let fileExtension = url.pathExtension.lowercased()
+                            if !blockedExtensions.contains(fileExtension) {
+                                droppedFiles.append(url)
+                            } else {
+                                print("❌ Blocked non-text file: \(url.lastPathComponent)")
+                            }
                         }
                     }
                 }
@@ -152,4 +157,16 @@ struct ContentView: View {
         default: return "doc"
         }
     }
+    private let blockedExtensions: Set<String> = [
+        // image
+        "png", "jpg", "jpeg", "gif", "bmp", "svg", "webp", "ico", "tiff", "heic",
+        // video
+        "mp4", "mov", "avi", "mkv", "webm", "m4v", "flv",
+        // audio
+        "mp3", "wav", "ogg", "flac", "aac",
+        // binary
+        "exe", "dmg", "app", "bin", "iso", "tar", "zip", "gz", "7z", "rar",
+        // document
+        "pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "key", "pages", "numbers"
+    ]
 }
