@@ -17,7 +17,7 @@ Originally designed to overcome GPT's 10-file reading limitation, it packages mu
 HTML, CSS, JavaScript, TypeScript, Python, Swift, Java, PHP, Ruby, Rust, C, C++, C#, Go, Kotlin, Lua, SQL, Perl, Scala, Sass, Vue, and more.
 
 ## Installation
-1. Download `JamPack.dmg`
+1. Download [`JamPack.dmg`](https://github.com/clicelee/JamPack/releases/tag/v1.0.0)
 2. Open the `.dmg` file
 3. Drag the **JamPack** icon into the **Applications** folder
 4. Launch **JamPack** from your Applications
