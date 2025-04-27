@@ -25,17 +25,17 @@ struct ContentView: View {
             RoundedRectangle(cornerRadius: 20)
                 .strokeBorder(style: StrokeStyle(lineWidth: isTargeted ? 4 : 2, dash: [10]))
                 .foregroundColor(isTargeted ? .blue : .gray)
-                .frame(width: 400, height: 250)
                 .background(
-                    Color.black.opacity(0.2)
-                        .cornerRadius(20)
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color(red: 30/255, green: 30/255, blue: 30/255))
                 )
+                .frame(maxWidth: .infinity, minHeight: 255, maxHeight: 255)
                 .overlay(
                     VStack {
                         Image(systemName: "square.and.arrow.down")
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 50, height: 50)
+                            .frame(width: 0, height: 0)
                             .foregroundColor(.white)
                         Text(droppedFiles.isEmpty ? "Drag & Drop files" : "Files ready to merge")
                             .foregroundColor(.white)
@@ -45,7 +45,6 @@ struct ContentView: View {
                 .onDrop(of: [.fileURL], isTargeted: $isTargeted) { providers in
                     handleDrop(providers: providers)
                 }
-
             if !droppedFiles.isEmpty {
                 List {
                     ForEach(droppedFiles, id: \.self) { file in
@@ -62,8 +61,8 @@ struct ContentView: View {
                         .padding(.vertical, 4)
                     }
                 }
+                .frame(maxHeight: 200)
                 .listStyle(PlainListStyle())
-                .background(Color.black.opacity(0.2))
             }
 
             if !droppedFiles.isEmpty {
@@ -72,13 +71,16 @@ struct ContentView: View {
                 }) {
                     Text("Merge to Text File")
                         .fontWeight(.semibold)
+                        .frame(maxWidth: .infinity)
                         .padding()
-                        .frame(width: 250)
-                        .background(Color.white)
-                        .foregroundColor(.black)
-                        .cornerRadius(10)
-                        .padding(.top, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color.black)
+                        )
                 }
+                .buttonStyle(PlainButtonStyle())
+                .frame(maxWidth: 250)
+                .padding(.top, 10)
             }
 
             if mergeComplete {
@@ -93,7 +95,7 @@ struct ContentView: View {
         }
         .padding()
         .frame(width: 500, height: 700)
-        .background(Color(red: 30/255, green: 30/255, blue: 30/255)) // AppCleaner처럼 어두운 배경
+        .background(Color(red: 30/255, green: 30/255, blue: 30/255)) // 앱 전체 배경 (다크그레이)
         .animation(.easeInOut, value: mergeComplete)
     }
 
@@ -120,6 +122,7 @@ struct ContentView: View {
             }
         }
     }
+
     private func iconName(for fileExtension: String) -> String {
         switch fileExtension.lowercased() {
         case "c": return "c"
