@@ -166,15 +166,13 @@ struct ContentView: View {
     }
 
     private func mergeFiles() {
-        MergeManager.merge(files: droppedFiles) { success in
+        MergeManager.merge(files: droppedFiles) { success, errorMessage in
             DispatchQueue.main.async {
                 if success {
-                    withAnimation {
-                        mergeComplete = true
-                    }
+                    mergeComplete = true
                 } else {
-                    alertMessage = "Failed to merge files. Please try again."
-                    showAlert = true
+                    alertMessage = errorMessage ?? "Unknown failure."
+                    showAlert    = true
                 }
             }
         }

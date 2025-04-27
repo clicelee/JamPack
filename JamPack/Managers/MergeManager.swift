@@ -6,40 +6,104 @@
 //
 
 import Foundation
+import CryptoKit
 
 struct MergeManager {
-    static func merge(files: [URL], completion: @escaping (Bool) -> Void) {
+
+    /// Merges multiple files into a single text file.
+    /// - Parameters:
+    ///   - files: List of file URLs to merge
+    ///   - completion: (success: Bool, errorMessage: String?)
+    static func merge(files: [URL], completion: @escaping (Bool, String?) -> Void) {
+
+        // ---------- 0. Pre-check ----------
         guard !files.isEmpty else {
-            completion(false)
+            completion(false, "No files were dropped.")
             return
         }
 
-        var mergedContent = ""
+        // ---------- 1. Build a SAFE output file name (≤ 240 bytes) ----------
+        var parts: [String] = []
+        var currentBytes = 0
+        for filename in files.map(\.lastPathComponent) {
+            let byteLength = filename.utf8.count + 1 // +1 for separator "-"
+            if currentBytes + byteLength > 200 { break }
+            parts.append(filename)
+            currentBytes += byteLength
+        }
 
-        for fileURL in files {
-            if let content = try? String(contentsOf: fileURL, encoding: .utf8) {
-                mergedContent += "```\(fileURL.lastPathComponent)\n"
-                mergedContent += content
-                mergedContent += "\n```\n\n"
+        let slug = parts.joined(separator: "-")
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        let timestamp = formatter.string(from: .init()).replacingOccurrences(of: ":", with: "-")
+        let shortHash = SHA256.hash(data: Data(slug.utf8)).description.prefix(6)
+
+        let safeName = (slug.isEmpty ? "JamPack" : slug) + "-\(shortHash)-\(timestamp).txt"
+        assert(safeName.utf8.count < 240, "Output file name too long!")
+
+        // ---------- 2. Prepare output file ----------
+        guard let downloadsDir = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first else {
+            completion(false, "Cannot access Downloads folder.")
+            return
+        }
+
+        let outputURL = downloadsDir.appendingPathComponent(safeName)
+
+        FileManager.default.createFile(atPath: outputURL.path, contents: nil)
+        guard let outputHandle = try? FileHandle(forWritingTo: outputURL) else {
+            completion(false, "Cannot open \(outputURL.lastPathComponent) for writing.")
+            return
+        }
+        defer { try? outputHandle.close() }
+
+        // ---------- 3. Stream files one by one ----------
+        let bufferSize = 32 * 1024 // 32 KiB buffer
+        let footerData = Data("\n```\n\n".utf8)
+
+        for file in files {
+
+            // --- Write header ---
+            do {
+                let headerData = Data("```\(file.lastPathComponent)\n".utf8)
+                try outputHandle.write(contentsOf: headerData)
+            } catch {
+                return handleMergeFailure(file, action: "writing header", error: error, completion)
+            }
+
+            // --- Write file body ---
+            do {
+                let inputHandle = try FileHandle(forReadingFrom: file)
+                defer { try? inputHandle.close() }
+
+                while let chunk = try inputHandle.read(upToCount: bufferSize), !chunk.isEmpty {
+                    try outputHandle.write(contentsOf: chunk)
+                }
+            } catch {
+                return handleMergeFailure(file, action: "copying data", error: error, completion)
+            }
+
+            // --- Write footer ---
+            do {
+                try outputHandle.write(contentsOf: footerData)
+            } catch {
+                return handleMergeFailure(file, action: "writing footer", error: error, completion)
             }
         }
 
-        let downloadsDirectory = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first!
+        try? outputHandle.synchronize()
+        completion(true, nil)
+    }
 
-        let combinedFileName = files
-            .map { $0.lastPathComponent }
-            .joined(separator: "-")
-            .replacingOccurrences(of: " ", with: "")
-
-        let outputFileName = "\(combinedFileName).txt"
-        let outputURL = downloadsDirectory.appendingPathComponent(outputFileName)
-
-        do {
-            try mergedContent.write(to: outputURL, atomically: true, encoding: .utf8)
-            completion(true)
-        } catch {
-            print("Failed to save merged file: \(error.localizedDescription)")
-            completion(false)
-        }
+    /// Handles merge failure by printing an error and calling completion
+    private static func handleMergeFailure(_ file: URL,
+                                           action: String,
+                                           error: Error,
+                                           _ completion: @escaping (Bool, String?) -> Void) {
+        let message = """
+        Failed while \(action) for file: \(file.lastPathComponent)
+        Error: \(error.localizedDescription)
+        """
+        print("❌ \(message)")
+        completion(false, message)
     }
 }
