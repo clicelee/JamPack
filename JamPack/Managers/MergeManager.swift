@@ -17,7 +17,7 @@ struct MergeManager {
         var mergedContent = ""
 
         for fileURL in files {
-            if let content = try? String(contentsOf: fileURL) {
+            if let content = try? String(contentsOf: fileURL, encoding: .utf8) {
                 mergedContent += "```\(fileURL.lastPathComponent)\n"
                 mergedContent += content
                 mergedContent += "\n```\n\n"
