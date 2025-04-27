@@ -22,19 +22,49 @@ struct ContentView: View {
                 .foregroundColor(.white)
                 .frame(width: 300, height: 300)
                 .overlay(
-                    Text("Drop here")
-                        .foregroundColor(.white)
+                    VStack {
+                        Text("Drop here")
+                            .foregroundColor(.white)
+                        if droppedFiles.isEmpty {
+                            Text("(No files yet)")
+                                .foregroundColor(.gray)
+                                .font(.caption)
+                        } else {
+                            List {
+                                ForEach(droppedFiles, id: \.self) { file in
+                                    Text(file.path)
+                                        .font(.caption)
+                                        .foregroundColor(.white)
+                                }
+                            }
+                            .frame(maxHeight: 200)
+                            .background(Color.black)
+                            .listStyle(PlainListStyle())
+                        }
+                    }
                 )
                 .onDrop(of: [.fileURL], isTargeted: nil) { providers in
                     handleDrop(providers: providers)
                 }
+
+            if !droppedFiles.isEmpty {
+                Button(action: {
+                    mergeFiles()
+                }) {
+                    Text("Merge to Text File")
+                        .foregroundColor(.black)
+                        .padding()
+                        .background(Color.white)
+                        .cornerRadius(10)
+                }
+            }
 
             if mergeComplete {
                 Text("✅ Merged to Downloads/JamPack-merged.txt")
                     .foregroundColor(.green)
             }
         }
-        .frame(width: 500, height: 500)
+        .frame(width: 500, height: 700)
         .background(Color.black)
     }
 
@@ -52,12 +82,12 @@ struct ContentView: View {
             }
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            MergeManager.merge(files: droppedFiles) { success in
-                mergeComplete = success
-            }
-        }
-
         return true
+    }
+
+    private func mergeFiles() {
+        MergeManager.merge(files: droppedFiles) { success in
+            mergeComplete = success
+        }
     }
 }
