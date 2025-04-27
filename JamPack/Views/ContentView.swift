@@ -11,6 +11,8 @@ struct ContentView: View {
     @State private var droppedFiles: [URL] = []
     @State private var mergeComplete: Bool = false
     @State private var isTargeted: Bool = false
+    @State private var showAlert: Bool = false
+    @State private var alertMessage: String = ""
 
     var body: some View {
         VStack(spacing: 20) {
@@ -49,6 +51,9 @@ struct ContentView: View {
                 List {
                     ForEach(droppedFiles, id: \.self) { file in
                         HStack(spacing: 10) {
+                            Image(systemName: "line.3.horizontal")
+                                .foregroundColor(.gray)
+
                             Image(iconName(for: file.pathExtension))
                                 .resizable()
                                 .scaledToFit()
@@ -57,12 +62,27 @@ struct ContentView: View {
                             Text(file.lastPathComponent)
                                 .foregroundColor(.white)
                                 .lineLimit(1)
+
+                            Spacer()
+
+                            Button(action: {
+                                if let index = droppedFiles.firstIndex(of: file) {
+                                    droppedFiles.remove(at: index)
+                                }
+                            }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.red)
+                            }
+                            .buttonStyle(BorderlessButtonStyle())
+                            .padding(.trailing, 10)
                         }
                         .padding(.vertical, 4)
+                        .padding(.trailing, 10)
                     }
+                    .onMove(perform: moveFile)
                 }
-                .frame(maxHeight: 200)
                 .listStyle(PlainListStyle())
+
             }
 
             if !droppedFiles.isEmpty {
@@ -95,11 +115,21 @@ struct ContentView: View {
         }
         .padding()
         .frame(width: 500, height: 700)
-        .background(Color(red: 30/255, green: 30/255, blue: 30/255)) // 앱 전체 배경 (다크그레이)
+        .background(Color(red: 30/255, green: 30/255, blue: 30/255))
         .animation(.easeInOut, value: mergeComplete)
+        .alert(isPresented: $showAlert) {
+            Alert(
+                title: Text("Error"),
+                message: Text(alertMessage),
+                dismissButton: .default(Text("OK"))
+            )
+        }
+
     }
 
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
+        var unsupportedFiles: [String] = []
+
         for provider in providers {
             if provider.hasItemConformingToTypeIdentifier("public.file-url") {
                 provider.loadItem(forTypeIdentifier: "public.file-url", options: nil) { (item, error) in
@@ -110,23 +140,46 @@ struct ContentView: View {
                             if !blockedExtensions.contains(fileExtension) {
                                 droppedFiles.append(url)
                             } else {
-                                print("❌ Blocked non-text file: \(url.lastPathComponent)")
+                                unsupportedFiles.append(url.lastPathComponent)
                             }
                         }
                     }
                 }
             }
         }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            if !unsupportedFiles.isEmpty {
+                alertMessage = "Unsupported files detected:\n" + unsupportedFiles.joined(separator: "\n")
+                showAlert = true
+            }
+        }
         return true
+    }
+    
+    private func removeFile(at index: Int) {
+        droppedFiles.remove(at: index)
+    }
+    
+    private func moveFile(from source: IndexSet, to destination: Int) {
+        droppedFiles.move(fromOffsets: source, toOffset: destination)
     }
 
     private func mergeFiles() {
         MergeManager.merge(files: droppedFiles) { success in
-            withAnimation {
-                mergeComplete = success
+            DispatchQueue.main.async {
+                if success {
+                    withAnimation {
+                        mergeComplete = true
+                    }
+                } else {
+                    alertMessage = "Failed to merge files. Please try again."
+                    showAlert = true
+                }
             }
         }
     }
+
 
     private func iconName(for fileExtension: String) -> String {
         switch fileExtension.lowercased() {
