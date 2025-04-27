@@ -1,0 +1,11 @@
+//
+//  .gitignore
+//  JamPack
+//
+//  Created by Clice Lee on 4/28/25.
+//
+
+# Xcode
+DerivedData/
+*.xcuserstate
+*.xcuserdata/
