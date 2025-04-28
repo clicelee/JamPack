@@ -1,9 +1,11 @@
 # [JamPack](https://jampack.vercel.app/)
 ![JamPack icon](https://github.com/user-attachments/assets/cdef9412-651b-43f5-92a0-139b175c7d83)
 
+**JamPack** is a lightweight macOS utility that bundles any number of code files into **one** `.txt` so you can feed them to AI assistants (or archive them) without hitting UI-level file-upload caps or model context limits.
+
 [click to download](https://jampack.vercel.app/downloads/JamPack.dmg)
 
-**JamPack** is a lightweight macOS utility that bundles any number of code files into **one** `.txt` so you can feed them to AI assistants (or archive them) without hitting UI-level file-upload caps or model context limits.
+
 
 > **Why does this matter?**  
 > • ChatGPT allows up to **10** files per upload and caps each text file at 2 M tokens[^gpt_files]  
@@ -18,6 +20,13 @@
 - Remove individual files before merging
 - One-click export to a properly-named `.txt`
 - Rejects unsupported types (images, binaries)
+- **Optimized for Large Merges**  
+- JamPack uses true streaming to read and write files efficiently with minimal memory.  
+- Even gigabyte-scale merges or thousands of files are handled smoothly without crashes.
+
+
+> Tip: Merged files are automatically copied to your clipboard after export, and you can optionally open the save folder instantly.
+
 
 ## Supported Languages
 HTML, CSS, JavaScript, TypeScript, Python, Swift, Java, C, C++, C#, Go, Rust, PHP, Ruby, Kotlin, Lua, SQL, Perl, Scala, Sass, Vue, and many other code files.
@@ -30,6 +39,8 @@ HTML, CSS, JavaScript, TypeScript, Python, Swift, Java, C, C++, C#, Go, Rust, PH
 
 ## Requirements
 - macOS 12 Monterey or later
+
+
 
 ## License
 MIT
