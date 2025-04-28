@@ -14,13 +14,19 @@ struct MergeManager {
     /// - Parameters:
     ///   - files: List of file URLs to merge
     ///   - completion: (success: Bool, errorMessage: String?)
-    static func merge(files: [URL], completion: @escaping (Bool, String?) -> Void) {
+    static var lastOutputURL: URL?
+    static func merge(files: [URL],
+                      outputDir: URL? = nil,
+                      completion: @escaping (Bool, String?) -> Void) {
 
         // ---------- 0. Pre-check ----------
         guard !files.isEmpty else {
             completion(false, "No files were dropped.")
             return
         }
+        
+        let dir = outputDir ??
+                     FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first!
 
         // ---------- 1. Build a SAFE output file name (≤ 240 bytes) ----------
         var parts: [String] = []
@@ -42,12 +48,12 @@ struct MergeManager {
         assert(safeName.utf8.count < 240, "Output file name too long!")
 
         // ---------- 2. Prepare output file ----------
-        guard let downloadsDir = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first else {
-            completion(false, "Cannot access Downloads folder.")
-            return
-        }
+//        guard let downloadsDir = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first else {
+//            completion(false, "Cannot access Downloads folder.")
+//            return
+//        }
 
-        let outputURL = downloadsDir.appendingPathComponent(safeName)
+        let outputURL = dir.appendingPathComponent(safeName)
 
         FileManager.default.createFile(atPath: outputURL.path, contents: nil)
         guard let outputHandle = try? FileHandle(forWritingTo: outputURL) else {
@@ -91,6 +97,7 @@ struct MergeManager {
         }
 
         try? outputHandle.synchronize()
+        MergeManager.lastOutputURL = outputURL      
         completion(true, nil)
     }
 

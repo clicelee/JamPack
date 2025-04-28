@@ -13,6 +13,8 @@ struct ContentView: View {
     @State private var isTargeted     = false
     @State private var showAlert      = false
     @State private var alertMessage   = ""
+    @State private var saveFolder: URL?    // nil for Downloads
+    @State private var showInfoToast = false
 
     var body: some View {
             VStack(spacing: 20) {
@@ -39,8 +41,7 @@ struct ContentView: View {
                         Button {
                             mergeFiles()
                         } label: {
-                            Text(mergeComplete ? "✅ Merged Complete"
-                                 : "Merge to Text File")
+                            Text("Merge to Text File")
                             .padding(.vertical, 14)
                             .padding(.horizontal, 30)
                             .background(Color.black)
@@ -67,17 +68,70 @@ struct ContentView: View {
                             .frame(width: 100)
                             .padding(.trailing, -8)
                         }
+
                     }
                     .padding(.top, 10)
+                    
                 }
-                
-                Spacer()
+                ScrollView {
+                    VStack(alignment: .center, spacing: 10) {
+//                        Text("① Drag and drop the files you want to merge.")
+//                            .font(.body)
+//                            .foregroundColor(.gray)
+//                            .frame(maxWidth: .infinity, alignment: .leading)
+//                        
+//                        Text("② Rearrange the file order as needed.\n(Files will be merged in the listed order.)")
+//                            .font(.body)
+//                            .foregroundColor(.gray)
+//                            .frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        Text("""
+                        The current save location is "\(saveFolder?.lastPathComponent ?? "Downloads")".
+                        To change the location, click the button below.
+                        """)
+                        .font(.body)
+                        .foregroundColor(.gray)
+                        .frame(maxWidth: .infinity)
+                        .multilineTextAlignment(.center)
+
+
+                        
+                        Button {
+                            pickSaveFolder()
+                        } label: {
+                            Text("Change Save Folder")
+                                .font(.caption2)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(Color.gray.opacity(0.5))
+                                .cornerRadius(6)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 6)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(maxHeight: 80)
+
+                    .padding(.top, 5)
+                    .padding(.horizontal, 4)
+                }
+                .frame(maxHeight: 160)
             
         }
         .padding()
         .frame(width: 500, height: 700)
         .background(Color(red: 30/255, green: 30/255, blue: 30/255))
         .animation(.easeInOut, value: mergeComplete)
+        .alert("✅ Merge Complete", isPresented: $showInfoToast) {
+            Button("Open Folder") {
+                openSaveFolder()
+            }
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("The merged file has been created in \(saveFolder?.lastPathComponent ?? "Downloads") and copied to the clipboard!")
+        }
+
         .alert("Error", isPresented: $showAlert) {
             Button("OK", role: .cancel) { }
         } message: {
@@ -146,7 +200,8 @@ struct ContentView: View {
             .onMove(perform: moveFile)
         }
         .listStyle(.plain)
-        .frame(maxHeight: 200)
+        .frame(height: 180)
+        .frame(maxHeight: 400)
     }
 
     @ViewBuilder
@@ -195,10 +250,16 @@ struct ContentView: View {
     }
 
     private func mergeFiles() {
-        MergeManager.merge(files: droppedFiles) { success, errorMessage in
+        MergeManager.merge(files: droppedFiles, outputDir: saveFolder) { success, errorMessage in
             DispatchQueue.main.async {
                 if success {
                     mergeComplete = true
+                    copyMergedToClipboard()
+                    showInfoToast = true
+
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        openSaveFolder()
+                    }
 
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                         withAnimation {
@@ -212,6 +273,31 @@ struct ContentView: View {
             }
         }
     }
+    
+    private func copyMergedToClipboard() {
+        guard let url = MergeManager.lastOutputURL,
+              let data = try? String(contentsOf: url, encoding: .utf8) else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(data, forType: .string)
+    }
+
+    private func pickSaveFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Select"
+        if panel.runModal() == .OK {
+            saveFolder = panel.url
+        }
+    }
+    
+    private func openSaveFolder() {
+        let folder = saveFolder ?? FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first!
+        NSWorkspace.shared.open(folder)
+    }
+
+
 
 
     // MARK: - List Utilities
@@ -219,6 +305,7 @@ struct ContentView: View {
         droppedFiles.move(fromOffsets: src, toOffset: dst)
     }
     private func clearAllFiles() { droppedFiles.removeAll() }
+    
 
     // MARK: - Icon Mapping
     private func iconName(for ext: String) -> String {
